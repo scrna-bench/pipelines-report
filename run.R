@@ -30,6 +30,7 @@ timings_path <- file.path(args$output_dir, "timings.tsv")
 
 split_path <- function(p) strsplit(p, "/", fixed = TRUE)[[1]]
 
+# function to extract dataset and method name from path
 extract_ds_method <- function(p) {
   parts <- split_path(p)
 
@@ -49,6 +50,7 @@ extract_ds_method <- function(p) {
 ari <- vector("list", length(args$metrics_paths))
 timings <- vector("list", length(args$metrics_paths))
 
+# build up ARI and timing rows in lists
 for (i in seq_along(args$metrics_paths)) {
   p <- args$metrics_paths[i]
   x <- fromJSON(p)
@@ -68,6 +70,7 @@ for (i in seq_along(args$metrics_paths)) {
   )
 }
 
+# rbind lists into dataframes
 ari <- do.call(rbind, ari)
 timings <- do.call(rbind, timings)
 
