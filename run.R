@@ -30,8 +30,9 @@ timings_path <- file.path(args$output_dir, "timings.tsv")
 
 split_path <- function(p) strsplit(p, "/", fixed = TRUE)[[1]]
 
-# function to extract dataset and method name from path
-extract_ds_method <- function(p) {
+# function to extract dataset name, method name
+# and clustering resolution from path
+extract_run_info <- function(p) {
   parts <- split_path(p)
 
   i_ds <- match("datasets", parts)
@@ -43,8 +44,11 @@ extract_ds_method <- function(p) {
   method_dir <- paste(parts[1:(i_methods + 2)], collapse = "/")
   cfg <- fromJSON(file.path(method_dir, "parameters.json"))
   method_name <- cfg$method_name
+  resolution <- cfg$resolution
 
-  list(dataset = dataset_name, method = method_name)
+  data.frame(
+    dataset = dataset_name, method = method_name, resolution = resolution
+  )
 }
 
 ari <- vector("list", length(args$metrics_paths))
@@ -55,19 +59,13 @@ for (i in seq_along(args$metrics_paths)) {
   p <- args$metrics_paths[i]
   x <- fromJSON(p)
 
-  meta <- extract_ds_method(p)
+  meta <- extract_run_info(p)
 
   adf <- as.data.frame(x$ari)
-  ari[[i]] <- cbind(
-    data.frame(dataset = meta$dataset, method = meta$method),
-    adf
-  )
+  ari[[i]] <- cbind(meta, adf)
 
   tdf <- as.data.frame(x$timings)
-  timings[[i]] <- cbind(
-    data.frame(dataset = meta$dataset, method = meta$method),
-    tdf
-  )
+  timings[[i]] <- cbind(meta, tdf)
 }
 
 # rbind lists into dataframes
