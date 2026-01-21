@@ -62,6 +62,8 @@ for (i in seq_along(args$metrics_paths)) {
   meta <- extract_run_info(p)
 
   adf <- as.data.frame(x$ari)
+  adf$n_clusters_leiden <- x$n_clusters$leiden
+  adf$n_clusters_louvain <- x$n_clusters$louvain
   ari[[i]] <- cbind(meta, adf)
 
   tdf <- as.data.frame(x$timings)
