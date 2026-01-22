@@ -45,9 +45,11 @@ extract_run_info <- function(p) {
   cfg <- fromJSON(file.path(method_dir, "parameters.json"))
   method_name <- cfg$method_name
   resolution <- cfg$resolution
+  filter <- cfg$filter
 
   data.frame(
-    dataset = dataset_name, method = method_name, resolution = resolution
+    dataset = dataset_name, method = method_name,
+    resolution = resolution, filter = filter
   )
 }
 
