@@ -25,8 +25,13 @@ parser$add_argument(
 
 args <- parser$parse_args()
 
+cargs <- commandArgs(trailingOnly = FALSE)
+m <- grep("--file=", cargs)
+run_dir <- dirname(gsub("--file=", "", cargs[[m]]))
+
 ari_path <- file.path(args$output_dir, "ari.tsv")
 timings_path <- file.path(args$output_dir, "timings.tsv")
+report_path <- file.path(args$output_dir, "plots.html")
 
 split_path <- function(p) strsplit(p, "/", fixed = TRUE)[[1]]
 
@@ -45,11 +50,11 @@ extract_run_info <- function(p) {
   cfg <- fromJSON(file.path(method_dir, "parameters.json"))
   method_name <- cfg$method_name
   resolution <- cfg$resolution
-  filter <- cfg$filter
+  filtering <- cfg$filter
 
   data.frame(
     dataset = dataset_name, method = method_name,
-    resolution = resolution, filter = filter
+    resolution = resolution, filtering = filtering
   )
 }
 
@@ -83,4 +88,16 @@ write.table(
 write.table(
   timings, timings_path,
   sep = "\t", quote = F, row.names = F
+)
+
+rmarkdown::render(
+  file.path(run_dir, "plots.Rmd"),
+  output_file = "plots.html",
+  output_dir = args$output_dir,
+  params = list(
+    ari = ari,
+    timings = timings
+  ),
+  quiet = TRUE,
+  envir = new.env(parent = globalenv())
 )

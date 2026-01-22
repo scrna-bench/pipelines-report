@@ -1,0 +1,144 @@
+---
+title: "scRNA Benchmark Report"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    theme: flatly
+params:
+  ari: ~
+  timings: ~
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  library(readr)
+  library(scales)
+})
+```
+
+```{r load-data}
+ari <- params$ari
+timings <- params$timings
+
+ari <- ari %>%
+  mutate(
+    resolution = as.numeric(resolution),
+    dataset = as.factor(dataset),
+    method = as.factor(method),
+    filtering = as.factor(filtering)
+  )
+
+ari_long <- ari %>%
+  pivot_longer(
+    cols = c(leiden, louvain),
+    names_to = "algorithm",
+    values_to = "ari"
+  ) %>%
+  mutate(
+    n_clusters = if_else(
+      algorithm == "leiden", n_clusters_leiden, n_clusters_louvain
+    ),
+    n_clusters = as.integer(n_clusters),
+    algorithm = factor(algorithm, levels = c("leiden", "louvain"))
+  )
+```
+
+# ARI vs number of clusters
+
+These curves show ARI as a function of the number of clusters, grouped by method and filtering mode, and faceted by dataset and algorithm.
+
+```{r ari-curves, fig.height=6, fig.width=10}
+ari_curves <- ari_long %>%
+  group_by(dataset, method, filtering, algorithm) %>%
+  arrange(n_clusters, .by_group = TRUE)
+
+ggplot(
+  ari_curves,
+  aes(x = n_clusters, y = ari, color = method, linetype = filtering)
+) +
+  geom_point(size = 2, alpha = 0.8) +
+  geom_path(alpha = 0.8) +
+  facet_grid(algorithm ~ dataset, scales = "free_x") +
+  labs(
+    x = "Number of clusters",
+    y = "ARI",
+    color = "Method",
+    linetype = "Filter mode"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+# Resolution to cluster count mapping
+
+This view shows how resolution translates to cluster count for each algorithm.
+
+```{r resolution-vs-clusters, fig.height=6, fig.width=10}
+resolution_map <- ari_long %>%
+  group_by(dataset, method, filtering, algorithm, resolution) %>%
+  summarize(n_clusters = mean(n_clusters, na.rm = TRUE), .groups = "drop")
+
+ggplot(
+  resolution_map,
+  aes(x = resolution, y = n_clusters, color = method, linetype = filtering)
+) +
+  geom_point(size = 2, alpha = 0.8) +
+  geom_line(alpha = 0.8) +
+  facet_grid(algorithm ~ dataset, scales = "free_y") +
+  labs(
+    x = "Resolution",
+    y = "Number of clusters",
+    color = "Method",
+    linetype = "Filter mode"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+# Timings overview
+
+We restrict to runs done with manual filtering.
+
+```{r timings-summary, fig.height=6, fig.width=10}
+if (ncol(timings) > 4) {
+  timings_long <- timings %>%
+    mutate(
+      across(
+        -c(dataset, method, resolution, filtering),
+        ~ readr::parse_number(as.character(.x))
+      )
+    ) %>%
+    pivot_longer(
+      cols = -c(dataset, method, resolution, filtering),
+      names_to = "stage",
+      values_to = "seconds"
+    )
+
+  timings_summary <- timings_long %>%
+    filter(filtering == "manual") %>%
+    group_by(dataset, method, stage) %>%
+    summarize(mean_seconds = mean(seconds, na.rm = TRUE), .groups = "drop")
+
+  ggplot(timings_summary, aes(x = dataset, y = mean_seconds, fill = method)) +
+    geom_col(position = "dodge") +
+    facet_wrap(~stage, scales = "free_y") +
+    scale_y_continuous(labels = label_number()) +
+    labs(
+      x = "Dataset",
+      y = "Mean seconds",
+      fill = "Method"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}
+```
