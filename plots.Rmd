@@ -8,7 +8,7 @@ output:
     code_folding: hide
     theme: flatly
 params:
-  ari: ~
+  metrics: ~
   timings: ~
 ---
 
@@ -29,10 +29,10 @@ suppressPackageStartupMessages({
 ```
 
 ```{r load-data}
-ari <- params$ari
+metrics <- params$metrics
 timings <- params$timings
 
-ari <- ari %>%
+metrics <- metrics %>%
   mutate(
     resolution = as.numeric(resolution),
     dataset = as.factor(dataset),
@@ -40,17 +40,22 @@ ari <- ari %>%
     filtering = as.factor(filtering)
   )
 
-ari_long <- ari %>%
+ari_long <- metrics %>%
   pivot_longer(
-    cols = c(leiden, louvain),
+    cols = c(agree_ari_leiden, agree_ari_louvain),
     names_to = "algorithm",
     values_to = "ari"
   ) %>%
   mutate(
     n_clusters = if_else(
-      algorithm == "leiden", n_clusters_leiden, n_clusters_louvain
+      algorithm == "agree_ari_leiden", n_clusters_leiden, n_clusters_louvain
     ),
     n_clusters = as.integer(n_clusters),
+    algorithm = recode(
+      algorithm,
+      agree_ari_leiden = "leiden",
+      agree_ari_louvain = "louvain"
+    ),
     algorithm = factor(algorithm, levels = c("leiden", "louvain"))
   )
 ```

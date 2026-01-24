@@ -29,7 +29,7 @@ cargs <- commandArgs(trailingOnly = FALSE)
 m <- grep("--file=", cargs)
 run_dir <- dirname(gsub("--file=", "", cargs[[m]]))
 
-ari_path <- file.path(args$output_dir, "ari.tsv")
+metrics_path <- file.path(args$output_dir, "metrics.tsv")
 timings_path <- file.path(args$output_dir, "timings.tsv")
 report_path <- file.path(args$output_dir, "plots.html")
 
@@ -58,7 +58,7 @@ extract_run_info <- function(p) {
   )
 }
 
-ari <- vector("list", length(args$metrics_paths))
+metrics <- vector("list", length(args$metrics_paths))
 timings <- vector("list", length(args$metrics_paths))
 
 # build up ARI and timing rows in lists
@@ -68,21 +68,36 @@ for (i in seq_along(args$metrics_paths)) {
 
   meta <- extract_run_info(p)
 
-  adf <- as.data.frame(x$ari)
-  adf$n_clusters_leiden <- x$n_clusters$leiden
-  adf$n_clusters_louvain <- x$n_clusters$louvain
-  ari[[i]] <- cbind(meta, adf)
+  row <- list()
+  row$n_clusters_leiden <- x$n_clusters$leiden
+  row$n_clusters_louvain <- x$n_clusters$louvain
+  row$dropped_cells <- x$dropped_cells
+
+  for (metric_name in names(x$agreement)) {
+    for (algo in names(x$agreement[[metric_name]])) {
+      key <- paste("agree", metric_name, algo, sep = "_")
+      row[[key]] <- x$agreement[[metric_name]][[algo]]
+    }
+  }
+  for (metric_name in names(x$structure)) {
+    for (algo in names(x$structure[[metric_name]])) {
+      key <- paste0("struc", metric_name, algo, sep = "_")
+      row[[key]] <- x$structure[[metric_name]][[algo]]
+    }
+  }
+
+  metrics[[i]] <- cbind(meta, as.data.frame(row, check.names = FALSE))
 
   tdf <- as.data.frame(x$timings)
   timings[[i]] <- cbind(meta, tdf)
 }
 
 # rbind lists into dataframes
-ari <- do.call(rbind, ari)
+metrics <- do.call(rbind, metrics)
 timings <- do.call(rbind, timings)
 
 write.table(
-  ari, ari_path,
+  metrics, metrics_path,
   sep = "\t", quote = F, row.names = F
 )
 write.table(
@@ -95,7 +110,7 @@ rmarkdown::render(
   output_file = "plots.html",
   output_dir = args$output_dir,
   params = list(
-    ari = ari,
+    metrics = metrics,
     timings = timings
   ),
   quiet = TRUE,
