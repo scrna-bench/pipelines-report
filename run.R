@@ -81,7 +81,7 @@ for (i in seq_along(args$metrics_paths)) {
   }
   for (metric_name in names(x$structure)) {
     for (algo in names(x$structure[[metric_name]])) {
-      key <- paste0("struc", metric_name, algo, sep = "_")
+      key <- paste("struc", metric_name, algo, sep = "_")
       row[[key]] <- x$structure[[metric_name]][[algo]]
     }
   }
