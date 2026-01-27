@@ -35,6 +35,8 @@ timings <- params$timings
 metrics <- metrics %>%
   mutate(
     resolution = as.numeric(resolution),
+    n_comp = as.numeric(n_comp),
+    n_neig = as.numeric(n_neig),
     dataset = as.factor(dataset),
     method = as.factor(method),
     filtering = as.factor(filtering)
@@ -119,12 +121,12 @@ if (ncol(timings) > 4) {
   timings_long <- timings %>%
     mutate(
       across(
-        -c(dataset, method, resolution, filtering),
+        -c(dataset, method, resolution, filtering, n_comp, n_neig),
         ~ readr::parse_number(as.character(.x))
       )
     ) %>%
     pivot_longer(
-      cols = -c(dataset, method, resolution, filtering),
+      cols = -c(dataset, method, resolution, filtering, n_comp, n_neig),
       names_to = "stage",
       values_to = "seconds"
     )
