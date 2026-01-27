@@ -53,11 +53,12 @@ extract_run_info <- function(p) {
   filtering <- cfg$filter
   n_comp <- cfg$n_comp
   n_neig <- cfg$n_neig
+  n_hvg <- cfg$n_hvg
 
   data.frame(
     dataset = dataset_name, method = method_name,
     resolution = resolution, filtering = filtering,
-    n_comp = n_comp, n_neig = n_neig
+    n_comp = n_comp, n_neig = n_neig, n_hvg = n_hvg
   )
 }
 

@@ -37,6 +37,7 @@ metrics <- metrics %>%
     resolution = as.numeric(resolution),
     n_comp = as.numeric(n_comp),
     n_neig = as.numeric(n_neig),
+    n_hvg = as.numeric(n_hvg),
     dataset = as.factor(dataset),
     method = as.factor(method),
     filtering = as.factor(filtering)
@@ -66,8 +67,16 @@ ari_long <- metrics %>%
 
 These curves show ARI as a function of the number of clusters, grouped by method and filtering mode, and faceted by dataset and algorithm.
 
+We only include runs with manual filtering, `n_comp = 50`, `n_neig = 15`, and `n_hvg = 1000`.
+
 ```{r ari-curves, fig.height=6, fig.width=10}
 ari_curves <- ari_long %>%
+  filter(
+    filtering == "manual",
+    n_comp == 50,
+    n_neig == 15,
+    n_hvg == 1000
+  ) %>%
   group_by(dataset, method, filtering, algorithm) %>%
   arrange(n_clusters, .by_group = TRUE)
 
@@ -121,12 +130,12 @@ if (ncol(timings) > 4) {
   timings_long <- timings %>%
     mutate(
       across(
-        -c(dataset, method, resolution, filtering, n_comp, n_neig),
+        -c(dataset, method, resolution, filtering, n_comp, n_neig, n_hvg),
         ~ readr::parse_number(as.character(.x))
       )
     ) %>%
     pivot_longer(
-      cols = -c(dataset, method, resolution, filtering, n_comp, n_neig),
+      cols = -c(dataset, method, resolution, filtering, n_comp, n_neig, n_hvg),
       names_to = "stage",
       values_to = "seconds"
     )
