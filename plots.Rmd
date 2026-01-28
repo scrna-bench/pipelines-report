@@ -63,6 +63,121 @@ ari_long <- metrics %>%
   )
 ```
 
+# Parameter-to-metric correlation heatmap
+
+These heatmaps show Spearman correlations between tuning parameters and metrics, faceted by method and clustering algorithm.
+We restrict to manual filtering.
+
+```{r param-metric-correlations, fig.height=8, fig.width=14}
+param_cols <- c("resolution", "n_comp", "n_neig", "n_hvg")
+metric_cols <- names(metrics) %>%
+  stringr::str_subset("^(agree|struc)_")
+
+metrics_corr <- metrics %>%
+  filter(filtering == "manual") %>%
+  select(method, filtering, all_of(param_cols), all_of(metric_cols)) %>%
+  pivot_longer(
+    cols = all_of(metric_cols),
+    names_to = "metric_full",
+    values_to = "metric_value"
+  ) %>%
+  mutate(
+    algorithm = stringr::str_extract(metric_full, "(leiden|louvain)$"),
+    metric = stringr::str_remove(metric_full, "_(leiden|louvain)$"),
+    metric_group = if_else(
+      stringr::str_starts(metric, "agree_"), "Agreement", "Structure"
+    )
+  ) %>%
+  pivot_longer(
+    cols = all_of(param_cols),
+    names_to = "parameter",
+    values_to = "param_value"
+  ) %>%
+  group_by(method, algorithm, metric_group, parameter, metric) %>%
+  summarize(
+    rho = cor(param_value, metric_value, method = "spearman", use = "pairwise.complete.obs"),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    metric_group = factor(metric_group, levels = c("Agreement", "Structure")),
+    metric = recode(
+      metric,
+      agree_ari = "ARI",
+      agree_nmi = "NMI",
+      agree_fowlkes_mallows = "FMI",
+      agree_homogeneity = "Homogeneity",
+      agree_completeness = "Completeness",
+      agree_v_measure = "V-measure",
+      struc_silhouette = "Silhouette",
+      struc_davies_bouldin = "Davies-Bouldin",
+      struc_calinski_harabasz = "Calinski-Harabasz"
+    ),
+    parameter = recode(
+      parameter,
+      n_comp = "num. comps",
+      n_neig = "num. nghbrs",
+      n_hvg = "num. hvgs",
+      resolution = "resolution"
+    )
+  )
+
+metric_group_colors <- c(Agreement = "#890c6c", Structure = "#37ae27")
+
+metrics_corr <- metrics_corr %>%
+  mutate(
+    metric = factor(metric)
+  )
+
+metric_strip <- metrics_corr %>%
+  distinct(metric, metric_group) %>%
+  mutate(x = as.numeric(metric))
+
+
+metric_levels <- metrics_corr %>%
+  distinct(metric, metric_group) %>%
+  arrange(metric_group, metric) %>%
+  pull(metric)
+metrics_corr$metric <- factor(metrics_corr$metric, levels = metric_levels)
+
+metric_strip <- metric_strip %>%
+  mutate(x = as.numeric(factor(metric, levels = metric_levels)))
+
+ggplot(metrics_corr, aes(x = metric, y = parameter, fill = rho)) +
+  geom_tile(color = "white", size = 0.2) +
+  facet_grid(algorithm ~ method) +
+  geom_segment(
+    data = metric_strip,
+    aes(
+      x = x - 0.5,
+      xend = x + 0.5,
+      y = 0.5,
+      yend = 0.5,
+      color = metric_group
+    ),
+    inherit.aes = FALSE,
+    linewidth = 2
+  ) +
+  scale_fill_gradient2(
+    low = "#0b6094",
+    mid = "white",
+    high = "#b70609",
+    midpoint = 0,
+    limits = c(-1, 1),
+    name = "spearman's rho"
+  ) +
+  scale_color_manual(values = metric_group_colors, name = "Metric type") +
+  labs(
+    x = "Metric",
+    y = "Parameter"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 30, hjust = 1),
+    panel.spacing = unit(0.6, "lines"),
+    plot.margin = margin(t = 14, r = 8, b = 16, l = 8)
+  )
+```
+
 # ARI vs number of clusters
 
 These curves show ARI as a function of the number of clusters, grouped by method and filtering mode, and faceted by dataset and algorithm.
@@ -117,6 +232,128 @@ ggplot(
     y = "Number of clusters",
     color = "Method",
     linetype = "Filter mode"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+# Robustness: ARI distribution across parameter settings
+
+This shows how stable each method is across parameter choices.
+
+```{r robustness-ari, fig.height=6, fig.width=12}
+ari_robust <- ari_long %>%
+  filter(filtering == "manual")
+
+ggplot(
+  ari_robust,
+  aes(x = method, y = ari, fill = method)
+) +
+  geom_violin(trim = TRUE, alpha = 0.7) +
+  geom_boxplot(width = 0.15, outlier.size = 0.4, alpha = 0.9) +
+  facet_grid(algorithm ~ dataset, scales = "free_y") +
+  labs(
+    x = "Method",
+    y = "ARI"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 30, hjust = 1),
+    legend.position = "none"
+  )
+```
+
+# Sensitivity: which parameters matter for ARI
+
+Effect size from one-way ANOVA of ARI vs each parameter, per method and algorithm.
+
+```{r sensitivity-ari, fig.height=4.5, fig.width=9}
+eta_sq <- function(df) {
+  fit <- stats::aov(ari ~ factor(param_value), data = df)
+  ss <- stats::anova(fit)[["Sum Sq"]]
+  if (length(ss) < 2 || sum(ss, na.rm = TRUE) == 0) {
+    return(NA_real_)
+  }
+  ss[1] / sum(ss, na.rm = TRUE)
+}
+
+param_list <- c("resolution", "n_comp", "n_neig", "n_hvg")
+
+sensitivity_df <- ari_long %>%
+  filter(filtering == "manual") %>%
+  select(method, algorithm, ari, all_of(param_list)) %>%
+  pivot_longer(
+    cols = all_of(param_list),
+    names_to = "parameter",
+    values_to = "param_value"
+  ) %>%
+  group_by(method, algorithm, parameter) %>%
+  summarize(eta_sq = eta_sq(pick(ari, param_value)), .groups = "drop") %>%
+  mutate(
+    parameter = recode(
+      parameter,
+      n_comp = "num components",
+      n_neig = "num neighbours",
+      n_hvg = "num hvgs",
+      resolution = "resolution"
+    ),
+    parameter = factor(
+      parameter,
+      levels = c("resolution", "num components", "num neighbours", "num hvgs")
+    )
+  )
+
+ggplot(
+  sensitivity_df,
+  aes(x = parameter, y = method, fill = eta_sq)
+) +
+  geom_tile(color = "white", size = 0.2) +
+  facet_grid(algorithm ~ .) +
+  scale_fill_gradient(
+    low = "#f7fbff",
+    high = "#08519c",
+    name = "Eta-squared"
+  ) +
+  labs(
+    x = "Parameter",
+    y = "Method"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+# Tradeoffs: agreement vs structure
+
+Scatter of ARI (agreement) vs silhouette (structure) to see tradeoffs per method.
+
+```{r tradeoff-ari-silhouette, fig.height=6, fig.width=10}
+tradeoff_df <- metrics %>%
+  filter(filtering == "manual") %>%
+  select(
+    dataset, method, resolution, filtering, n_comp, n_neig, n_hvg,
+    agree_ari_leiden, agree_ari_louvain,
+    struc_silhouette_leiden, struc_silhouette_louvain
+  ) %>%
+  pivot_longer(
+    cols = c(
+      agree_ari_leiden, agree_ari_louvain,
+      struc_silhouette_leiden, struc_silhouette_louvain
+    ),
+    names_to = c("metric", "algorithm"),
+    names_pattern = "(agree_ari|struc_silhouette)_(leiden|louvain)$",
+    values_to = "value"
+  ) %>%
+  pivot_wider(names_from = metric, values_from = value)
+
+ggplot(
+  tradeoff_df,
+  aes(x = struc_silhouette, y = agree_ari, color = method)
+) +
+  geom_point(alpha = 0.6, size = 1.4) +
+  facet_grid(algorithm ~ dataset, scales = "free") +
+  labs(
+    x = "Silhouette",
+    y = "ARI",
+    color = "Method"
   ) +
   theme_minimal(base_size = 12)
 ```
