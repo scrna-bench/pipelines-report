@@ -36,7 +36,7 @@ report_path <- file.path(args$output_dir, "plots.html")
 split_path <- function(p) strsplit(p, "/", fixed = TRUE)[[1]]
 
 # function to extract dataset name, method name
-# and clustering resolution from path
+# and number of target clusters from path
 extract_run_info <- function(p) {
   parts <- split_path(p)
 
@@ -49,7 +49,7 @@ extract_run_info <- function(p) {
   method_dir <- paste(parts[1:(i_methods + 2)], collapse = "/")
   cfg <- fromJSON(file.path(method_dir, "parameters.json"))
   method_name <- cfg$method_name
-  resolution <- cfg$resolution
+  cluster <- cfg$n_cluster
   filtering <- cfg$filter
   n_comp <- cfg$n_comp
   n_neig <- cfg$n_neig
@@ -57,7 +57,7 @@ extract_run_info <- function(p) {
 
   data.frame(
     dataset = dataset_name, method = method_name,
-    resolution = resolution, filtering = filtering,
+    cluster = cluster, filtering = filtering,
     n_comp = n_comp, n_neig = n_neig, n_hvg = n_hvg
   )
 }
@@ -75,6 +75,8 @@ for (i in seq_along(args$metrics_paths)) {
   row <- list()
   row$n_clusters_leiden <- x$n_clusters$leiden
   row$n_clusters_louvain <- x$n_clusters$louvain
+  row$resolution_leiden <- x$resolutions$leiden
+  row$resolution_louvain <- x$resolutions$louvain
   row$dropped_cells <- x$dropped_cells
 
   for (metric_name in names(x$agreement)) {

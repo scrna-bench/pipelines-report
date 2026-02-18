@@ -34,10 +34,10 @@ timings <- params$timings
 
 metrics <- metrics %>%
   mutate(
-    resolution = as.numeric(resolution),
-    n_comp = as.numeric(n_comp),
-    n_neig = as.numeric(n_neig),
-    n_hvg = as.numeric(n_hvg),
+    cluster = as.integer(cluster),
+    n_comp = as.integer(n_comp),
+    n_neig = as.integer(n_neig),
+    n_hvg = as.integer(n_hvg),
     dataset = as.factor(dataset),
     method = as.factor(method),
     filtering = as.factor(filtering)
@@ -52,6 +52,10 @@ ari_long <- metrics %>%
   mutate(
     n_clusters = if_else(
       algorithm == "agree_ari_leiden", n_clusters_leiden, n_clusters_louvain
+    ),
+    n_clusters = as.integer(n_clusters),
+    resolution = if_else(
+      algorithm == "agree_ari_leiden", resolution_leiden, resolution_louvain
     ),
     n_clusters = as.integer(n_clusters),
     algorithm = recode(
@@ -69,7 +73,7 @@ These heatmaps show Spearman correlations between tuning parameters and metrics,
 We restrict to manual filtering.
 
 ```{r param-metric-correlations, fig.height=8, fig.width=14}
-param_cols <- c("resolution", "n_comp", "n_neig", "n_hvg")
+param_cols <- c("cluster", "n_comp", "n_neig", "n_hvg")
 metric_cols <- names(metrics) %>%
   stringr::str_subset("^(agree|struc)_")
 
@@ -95,7 +99,10 @@ metrics_corr <- metrics %>%
   ) %>%
   group_by(method, algorithm, metric_group, parameter, metric) %>%
   summarize(
-    rho = cor(param_value, metric_value, method = "spearman", use = "pairwise.complete.obs"),
+    rho = cor(
+      param_value, metric_value,
+      method = "spearman", use = "pairwise.complete.obs"
+    ),
     .groups = "drop"
   ) %>%
   mutate(
@@ -114,10 +121,10 @@ metrics_corr <- metrics %>%
     ),
     parameter = recode(
       parameter,
+      cluster = "cluster",
       n_comp = "num. comps",
       n_neig = "num. nghbrs",
-      n_hvg = "num. hvgs",
-      resolution = "resolution"
+      n_hvg = "num. hvgs"
     )
   )
 
@@ -148,21 +155,15 @@ ggplot(metrics_corr, aes(x = metric, y = parameter, fill = rho)) +
   geom_segment(
     data = metric_strip,
     aes(
-      x = x - 0.5,
-      xend = x + 0.5,
-      y = 0.5,
-      yend = 0.5,
+      x = x - 0.5, xend = x + 0.5,
+      y = 0.5, yend = 0.5,
       color = metric_group
     ),
-    inherit.aes = FALSE,
-    linewidth = 2
+    inherit.aes = FALSE, linewidth = 2
   ) +
   scale_fill_gradient2(
-    low = "#0b6094",
-    mid = "white",
-    high = "#b70609",
-    midpoint = 0,
-    limits = c(-1, 1),
+    low = "#0b6094", mid = "white", high = "#b70609",
+    midpoint = 0, limits = c(-1, 1),
     name = "spearman's rho"
   ) +
   scale_color_manual(values = metric_group_colors, name = "Metric type") +
@@ -275,7 +276,7 @@ eta_sq <- function(df) {
   ss[1] / sum(ss, na.rm = TRUE)
 }
 
-param_list <- c("resolution", "n_comp", "n_neig", "n_hvg")
+param_list <- c("cluster", "n_comp", "n_neig", "n_hvg")
 
 sensitivity_df <- ari_long %>%
   filter(filtering == "manual") %>%
@@ -293,11 +294,11 @@ sensitivity_df <- ari_long %>%
       n_comp = "num components",
       n_neig = "num neighbours",
       n_hvg = "num hvgs",
-      resolution = "resolution"
+      cluster = "cluster"
     ),
     parameter = factor(
       parameter,
-      levels = c("resolution", "num components", "num neighbours", "num hvgs")
+      levels = c("cluster", "num components", "num neighbours", "num hvgs")
     )
   )
 
@@ -328,7 +329,7 @@ Scatter of ARI (agreement) vs silhouette (structure) to see tradeoffs per method
 tradeoff_df <- metrics %>%
   filter(filtering == "manual") %>%
   select(
-    dataset, method, resolution, filtering, n_comp, n_neig, n_hvg,
+    dataset, method, cluster, filtering, n_comp, n_neig, n_hvg,
     agree_ari_leiden, agree_ari_louvain,
     struc_silhouette_leiden, struc_silhouette_louvain
   ) %>%
@@ -366,12 +367,12 @@ if (ncol(timings) > 4) {
   timings_long <- timings %>%
     mutate(
       across(
-        -c(dataset, method, resolution, filtering, n_comp, n_neig, n_hvg),
+        -c(dataset, method, cluster, filtering, n_comp, n_neig, n_hvg),
         ~ readr::parse_number(as.character(.x))
       )
     ) %>%
     pivot_longer(
-      cols = -c(dataset, method, resolution, filtering, n_comp, n_neig, n_hvg),
+      cols = -c(dataset, method, cluster, filtering, n_comp, n_neig, n_hvg),
       names_to = "stage",
       values_to = "seconds"
     )
