@@ -18,7 +18,7 @@ parser$add_argument(
   required = TRUE
 )
 parser$add_argument(
-  "--metrics.json",
+  "--metrics.metrics",
   dest = "metrics_paths", type = "character", nargs = "+",
   help = "cluster tsv path", required = TRUE
 )
