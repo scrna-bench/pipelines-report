@@ -47,6 +47,7 @@ extract_run_info <- function(p) {
 
   i_methods <- match("methods", parts)
   method_dir <- paste(parts[1:(i_methods + 2)], collapse = "/")
+  module_name <- parts[i_methods + 1]
   cfg <- fromJSON(file.path(method_dir, "parameters.json"))
   method_name <- cfg$method_name
   cluster <- cfg$n_cluster
@@ -56,7 +57,7 @@ extract_run_info <- function(p) {
   n_hvg <- cfg$n_hvg
 
   data.frame(
-    dataset = dataset_name, method = method_name,
+    dataset = dataset_name, method = method_name, module = module_name,
     cluster = cluster, filtering = filtering,
     n_comp = n_comp, n_neig = n_neig, n_hvg = n_hvg
   )
