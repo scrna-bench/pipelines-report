@@ -42,7 +42,11 @@ stopifnot(identical(
   timings %>% select(all_of(keys_t)),
 ))
 
-metrics_all <- bind_cols(metrics, select(timings, -all_of(keys_m)))
+timing_value_cols <- setdiff(names(timings), keys_m)
+timings_renamed <- timings %>%
+  rename_with(~ paste0("timings_", .x), all_of(timing_value_cols))
+
+metrics_all <- bind_cols(metrics, select(timings_renamed, -all_of(keys_m)))
 
 metrics_all <- metrics_all %>%
   mutate(
