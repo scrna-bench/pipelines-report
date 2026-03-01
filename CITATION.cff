@@ -6,6 +6,6 @@ authors:
   - family-names: Choudhury
     given-names: Atreya
     orcid: "https://orcid.org/0009-0003-4975-0515"
-url: "https://github.com/scrna-bench/pipelines-report"
 version: 1.0
+repository-code: "https://github.com/scrna-bench/pipelines-report"
 license: MIT
