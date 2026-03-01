@@ -97,13 +97,13 @@ metrics_long %>% glimpse()
 
 These curves show ARI as a function of the number of clusters, grouped by method and filtering mode, and faceted by dataset and algorithm.
 
-We only include runs with manual filtering, `n_comp = 30`, `n_neig = 20`, and `n_hvg = 1000`.
+We only include runs with manual filtering, `n_comp = 50`, `n_neig = 20`, and `n_hvg = 1000`.
 
 ```{r ari-curves, fig.height=6, fig.width=10}
 ari_curves <- metrics_long_new %>%
   filter(
     filtering == "manual",
-    n_comp == 30,
+    n_comp == 50,
     n_neig == 20,
     n_hvg == 1000
   ) %>%
