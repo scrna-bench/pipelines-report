@@ -50,7 +50,7 @@ extract_run_info <- function(p) {
   module_name <- parts[i_methods + 1]
   cfg <- fromJSON(file.path(method_dir, "parameters.json"))
   method_name <- cfg$method_name
-  cluster <- cfg$n_cluster
+  d_cluster <- cfg$d_cluster
   filtering <- cfg$filter
   n_comp <- cfg$n_comp
   n_neig <- cfg$n_neig
@@ -58,7 +58,7 @@ extract_run_info <- function(p) {
 
   data.frame(
     dataset = dataset_name, method = method_name, module = module_name,
-    cluster = cluster, filtering = filtering,
+    d_cluster = d_cluster, filtering = filtering,
     n_comp = n_comp, n_neig = n_neig, n_hvg = n_hvg
   )
 }
