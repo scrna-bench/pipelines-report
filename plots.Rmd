@@ -234,7 +234,9 @@ ggplot(
 
 # Timings overview
 
-We restrict to runs done with manual filtering.
+We restrict to runs done with manual filtering. `louvain` and `leiden` denote
+average seconds per clustering invocation during the resolution search; other
+stages remain total stage runtime.
 
 ```{r timings-summary, fig.height=6, fig.width=10}
 timing_cols <- grep("^timings_", names(metrics_new), value = TRUE)

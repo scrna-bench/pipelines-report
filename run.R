@@ -76,8 +76,10 @@ for (i in seq_along(args$metrics_paths)) {
   row <- list()
   row$n_clusters_leiden <- x$n_clusters$leiden
   row$n_clusters_louvain <- x$n_clusters$louvain
-  row$resolution_leiden <- x$resolutions$leiden
-  row$resolution_louvain <- x$resolutions$louvain
+  row$resolution_leiden <- x$clustering_info$resolutions$leiden
+  row$resolution_louvain <- x$clustering_info$resolutions$louvain
+  row$num_runs_leiden <- x$clustering_info$num_runs$leiden
+  row$num_runs_louvain <- x$clustering_info$num_runs$louvain
   row$dropped_cells <- x$dropped_cells
 
   for (metric_name in names(x$agreement)) {
