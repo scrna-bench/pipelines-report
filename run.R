@@ -97,7 +97,10 @@ for (i in seq_along(args$metrics_paths)) {
 
   metrics[[i]] <- cbind(meta, as.data.frame(row, check.names = FALSE))
 
-  tdf <- as.data.frame(x$timings)
+  tdf <- as.data.frame(lapply(x$timings, function(v) {
+    if (is.null(v) || length(v) == 0) "NA" else v
+  }), check.names = FALSE)
+
   timings[[i]] <- cbind(meta, tdf)
 }
 
