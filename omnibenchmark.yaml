@@ -1,2 +1,2 @@
 entrypoints:
-  default: run.R
+  report: report.R

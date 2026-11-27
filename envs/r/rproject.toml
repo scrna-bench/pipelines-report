@@ -1,0 +1,17 @@
+[project]
+name = "pipelines-report"
+r_version = "4.5"
+
+repositories = [
+  { alias = "PPM", url = "https://packagemanager.posit.co/cran/latest" },
+]
+
+dependencies = [
+  "jsonlite",
+  "dplyr",
+  "tidyr",
+  "readr",
+  "ggplot2",
+  "scales",
+  "rmarkdown",
+]
